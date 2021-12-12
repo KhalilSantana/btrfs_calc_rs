@@ -8,11 +8,18 @@ struct ProfileCfg {
 
 #[derive(Debug, Clone)]
 enum BtrfsProfile {
+    /// `BtrfsProfile::Single` is the simplest of all BTRFS profiles, it will allocate one chunk at a time, and write to any drive,
+    /// thus, the usable space on this profile is trivially found by adding the raw space on all drives
     Single,
+    /// `BtrfsProfile::Dup` is another rather simple profile, it will allocate two identical chunks at a time, and place them on **any** device
+    /// which includes having both copies on the same drive. Thus, the usable space for this profile is defined as ```RAW_SPACE/2```
     Dup,
     Raid0,
+    /// `BtrfsProfile::Raid1` is identical to `BtrfsProfile::Dup`, however it will ensure both copies will be written to **different** drives.
     Raid1,
+    /// Identical to `BtrfsProfile::Raid1`, but with three copies on three distinct drives.
     Raid1c3,
+    /// Identical to `BtrfsProfile::Raid1`, but with four copies on four distinct drives.
     Raid1c4,
     Raid10,
     Raid5,
@@ -83,10 +90,12 @@ fn calc(profile: &BtrfsProfile, drives: &mut [Drive]) -> CalcStats {
             stats.usable_capacity = stats.raw_capacity / profile.configuration().number_of_copies;
         }
         BtrfsProfile::Raid5 => {
-            todo!("Implement raid5")
+            todo!("Implement raid5");
+            todo!("Handle degenerate cases like 2xdrive RAID5")
         }
         BtrfsProfile::Raid6 => {
-            todo!("Implement raid6")
+            todo!("Implement raid6");
+            todo!("Handle degenerate cases like 3xdrive RAID6")
         }
         _ => {
             // TODO: Move this stuff so it only handles mirroring and not other profiles
