@@ -90,12 +90,10 @@ fn calc(profile: &BtrfsProfile, drives: &mut [Drive]) -> CalcStats {
             stats.usable_capacity = stats.raw_capacity / profile.configuration().number_of_copies;
         }
         BtrfsProfile::Raid5 => {
-            todo!("Implement raid5");
-            todo!("Handle degenerate cases like 2xdrive RAID5")
+            todo!("Implement raid5 && Handle degenerate cases like 2xdrive RAID5")
         }
         BtrfsProfile::Raid6 => {
-            todo!("Implement raid6");
-            todo!("Handle degenerate cases like 3xdrive RAID6")
+            todo!("Implement raid6 && Handle degenerate cases like 3xdrive RAID6")
         }
         BtrfsProfile::Raid1 | BtrfsProfile::Raid1c3 | BtrfsProfile::Raid1c4 => {
             // Unwrap usage: We already check if the `drives` array has enough elements at the start of this fn
@@ -120,11 +118,12 @@ fn calc(profile: &BtrfsProfile, drives: &mut [Drive]) -> CalcStats {
 }
 
 fn main() {
-    let mut drives: Vec<Drive> = vec![];
-    drives.push(Drive::new(1000));
-    drives.push(Drive::new(1000));
-    drives.push(Drive::new(500));
-    drives.push(Drive::new(250));
+    let mut drives: Vec<Drive> = vec![
+        Drive::new(1000),
+        Drive::new(1000),
+        Drive::new(500),
+        Drive::new(250),
+    ];
     let stats = calc(&BtrfsProfile::Raid1c4, &mut drives);
     println!("{:?}", stats);
 }
