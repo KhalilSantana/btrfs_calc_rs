@@ -8,7 +8,7 @@ struct ProfileCfg {
     parity: usize,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 enum BtrfsProfile {
     /// `BtrfsProfile::Single` is the simplest of all BTRFS profiles, it will allocate one chunk at a time, and write to any drive,
     /// thus, the usable space on this profile is trivially found by adding the raw space on all drives
@@ -52,7 +52,7 @@ impl BtrfsProfile {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 struct Drive {
     capacity: usize,
     free: usize,
@@ -64,15 +64,15 @@ impl Drive {
     }
 }
 
-#[derive(Debug, Clone)]
-struct CalcStats {
-    profile: BtrfsProfile,
+#[derive(Debug)]
+struct CalcStats<'a> {
+    profile: &'a BtrfsProfile,
     raw_capacity: usize,
     usable_capacity: usize,
 }
 
-fn calc(profile: &BtrfsProfile, drives: &mut [Drive]) -> CalcStats {
-    let mut stats = CalcStats { profile: profile.clone(), raw_capacity: 0, usable_capacity: 0 };
+fn calc<'a>(profile: &'a BtrfsProfile, drives: &mut [Drive]) -> CalcStats<'a> {
+    let mut stats = CalcStats { profile, raw_capacity: 0, usable_capacity: 0 };
     // Ensure the selected profile can be computed for `drives.len()` number of devices.
     // TODO: Use a less naïve check to handle other cases with parity, etc
     if drives.len() < profile.configuration().number_of_copies {
