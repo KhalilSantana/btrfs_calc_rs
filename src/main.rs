@@ -98,18 +98,16 @@ fn calc(profile: &BtrfsProfile, drives: &mut [Drive]) -> CalcStats {
             todo!("Handle degenerate cases like 3xdrive RAID6")
         }
         BtrfsProfile::Raid1 | BtrfsProfile::Raid1c3 | BtrfsProfile::Raid1c4 => {
-            // Safety: We already check if the `drives` array has enough elements at the start of this fn
+            // Unwrap usage: We already check if the `drives` array has enough elements at the start of this fn
             // and this fn doesn't add or remove items to the `drives` array, as such, there's no need to check here again
-            unsafe {
-                // While the drive with the least amount of space still has _some_ space left..
-                // Note: `number_of_copies` is always a value >= 1, as such we need to offset this here
-                while drives.get_unchecked(profile.configuration().number_of_copies - 1).free > 0 {
-                    for i in 0..profile.configuration().number_of_copies {
-                        drives.get_unchecked_mut(i).free -= 1;
-                    }
-                    stats.usable_capacity += 1;
-                    drives.sort_by(|a, b| b.free.partial_cmp(&a.free).unwrap());
+            // While the drive with the least amount of space still has _some_ space left..
+            // Note: `number_of_copies` is always a value >= 1, as such we need to offset this here
+            while drives.get(profile.configuration().number_of_copies - 1).unwrap().free > 0 {
+                for i in 0..profile.configuration().number_of_copies {
+                    drives.get_mut(i).unwrap().free -= 1;
                 }
+                stats.usable_capacity += 1;
+                drives.sort_by(|a, b| b.free.partial_cmp(&a.free).unwrap());
             }
         }
         // TODO: Handle non-standard profile configurations
