@@ -3,7 +3,9 @@
 #[derive(Debug, Clone)]
 struct ProfileCfg {
     number_of_copies: usize,
-    parity: u8,
+    stripe_min: usize,
+    stripe_max: usize,
+    parity: usize,
 }
 
 #[derive(Debug, Clone)]
@@ -28,25 +30,23 @@ enum BtrfsProfile {
 }
 
 impl ProfileCfg {
-    fn new(number_of_copies: usize, parity: u8) -> Self {
-        ProfileCfg { number_of_copies, parity }
+    fn new(number_of_copies: usize, stripe_min: usize, stripe_max: usize, parity: usize) -> Self {
+        ProfileCfg { number_of_copies, stripe_min, stripe_max, parity }
     }
 }
 
 impl BtrfsProfile {
     fn configuration(&self) -> ProfileCfg {
         match self {
-            Self::Single => ProfileCfg::new(1, 0),
-            Self::Dup => ProfileCfg::new(2, 0),
-            Self::Raid1 => ProfileCfg::new(2, 0),
-            Self::Raid1c3 => ProfileCfg::new(3, 0),
-            Self::Raid1c4 => ProfileCfg::new(4, 0),
-            //TODO: Add stripe for these two
-            Self::Raid0 => ProfileCfg::new(1, 0),
-            Self::Raid10 => ProfileCfg::new(2, 0),
-            // TODO: Add parity handling for these two
-            Self::Raid5 => ProfileCfg::new(1, 2),
-            Self::Raid6 => ProfileCfg::new(1, 0),
+            Self::Single => ProfileCfg::new(1, 1, 1, 0),
+            Self::Dup => ProfileCfg::new(2, 1, 1, 0),
+            Self::Raid1 => ProfileCfg::new(2, 1, 1, 0),
+            Self::Raid1c3 => ProfileCfg::new(3, 1, 1, 0),
+            Self::Raid1c4 => ProfileCfg::new(4, 1, 1, 0),
+            Self::Raid0 => ProfileCfg::new(1, 2, usize::MAX, 0),
+            Self::Raid10 => ProfileCfg::new(2, 2, usize::MAX, 0),
+            Self::Raid5 => ProfileCfg::new(1, 1, usize::MAX, 1),
+            Self::Raid6 => ProfileCfg::new(1, 1, usize::MAX, 2),
             Self::Unknown(cfg) => cfg.clone()
         }
     }
