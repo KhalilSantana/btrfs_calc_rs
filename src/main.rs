@@ -97,8 +97,7 @@ fn calc(profile: &BtrfsProfile, drives: &mut [Drive]) -> CalcStats {
             todo!("Implement raid6");
             todo!("Handle degenerate cases like 3xdrive RAID6")
         }
-        _ => {
-            // TODO: Move this stuff so it only handles mirroring and not other profiles
+        BtrfsProfile::Raid1 | BtrfsProfile::Raid1c3 | BtrfsProfile::Raid1c4 => {
             // Safety: We already check if the `drives` array has enough elements at the start of this fn
             // and this fn doesn't add or remove items to the `drives` array, as such, there's no need to check here again
             unsafe {
@@ -113,6 +112,10 @@ fn calc(profile: &BtrfsProfile, drives: &mut [Drive]) -> CalcStats {
                 }
             }
         }
+        // TODO: Handle non-standard profile configurations
+        _ => {
+            unimplemented!()
+        }
     }
     println!("Drives: {:?}", drives);
     stats
@@ -124,6 +127,6 @@ fn main() {
     drives.push(Drive::new(1000));
     drives.push(Drive::new(500));
     drives.push(Drive::new(250));
-    let stats = calc(&BtrfsProfile::Raid1c3, &mut drives);
+    let stats = calc(&BtrfsProfile::Raid1c4, &mut drives);
     println!("{:?}", stats);
 }
