@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
-use crate::drive::Drive;
+use tabled::Table;
+use crate::drive::*;
 use crate::profiles::BtrfsProfile;
 
 mod drive;
@@ -25,7 +26,7 @@ fn calc<'a>(profile: &'a BtrfsProfile, drives: &mut [Drive]) -> CalcStats<'a> {
         panic!("Not enough drives...")
     }
     stats.raw_capacity = drives.iter().map(|d| d.capacity).sum();
-    drives.sort_by(|a, b| b.free.partial_cmp(&a.free).unwrap());
+    drive::sort_drives_by_free_space_decreasing(drives);
     match profile {
         BtrfsProfile::Single => {
             stats.usable_capacity = stats.raw_capacity;
@@ -54,25 +55,25 @@ fn calc<'a>(profile: &'a BtrfsProfile, drives: &mut [Drive]) -> CalcStats<'a> {
                     drives.get_mut(i).unwrap().free -= 1;
                 }
                 stats.usable_capacity += 1;
-                drives.sort_by(|a, b| b.free.partial_cmp(&a.free).unwrap());
-            }
+                drive::sort_drives_by_free_space_decreasing(drives);            }
         }
         // TODO: Handle non-standard profile configurations
         _ => {
             unimplemented!()
         }
     }
-    println!("Drives: {:?}", drives);
     stats
 }
 
 fn main() {
     let mut drives: Vec<Drive> = vec![
-        Drive::new(1000),
-        Drive::new(1000),
-        Drive::new(500),
-        Drive::new(250),
+        Drive::new(0,1000),
+        Drive::new(1,1000),
+        Drive::new(2,500),
+        Drive::new(3,250),
     ];
-    let stats = calc(&BtrfsProfile::Raid1c4, &mut drives);
+    let stats = calc(&BtrfsProfile::Raid1c3, &mut drives);
+    let drive_t = Table::new(drives).to_string();
     println!("{:?}", stats);
+    println!("{}", drive_t);
 }
