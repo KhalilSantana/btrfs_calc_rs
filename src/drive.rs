@@ -1,18 +1,39 @@
 use tabled::Tabled;
+use std::sync::atomic::AtomicU8;
+use std::sync::atomic::Ordering;
+
+static DRIVE_ID_COUNTER: AtomicU8 = AtomicU8::new(0);
+
 #[derive(Debug, Tabled)]
 pub(crate) struct Drive {
-    pub id: u8,
-    pub capacity: usize,
-    pub free: usize,
+    id: u8,
+    capacity: usize,
+    free: usize,
 }
 
 impl Drive {
-    pub fn new(id: u8, capacity: usize) -> Self {
+    pub fn new(capacity: usize) -> Self {
         Drive {
-            id,
+            id: DRIVE_ID_COUNTER.fetch_add(1, Ordering::SeqCst),
             capacity,
             free: capacity,
         }
+    }
+
+    pub fn get_capacity(&self) -> usize {
+        self.capacity.clone()
+    }
+
+    pub fn get_free(&self) -> usize {
+        self.free.clone()
+    }
+
+    pub fn dec_free(&mut self) {
+        self.free -= 1;
+    }
+
+    pub fn has_free_space(&self) -> bool {
+        self.free > 0
     }
 }
 

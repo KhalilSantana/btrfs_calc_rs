@@ -1,8 +1,8 @@
 #![allow(dead_code)]
 
-use tabled::Table;
 use crate::drive::*;
 use crate::profiles::BtrfsProfile;
+use tabled::Table;
 
 mod drive;
 mod profiles;
@@ -12,6 +12,7 @@ struct CalcStats<'a> {
     profile: &'a BtrfsProfile,
     raw_capacity: usize,
     usable_capacity: usize,
+    unusable_space: usize,
 }
 
 fn calc<'a>(profile: &'a BtrfsProfile, drives: &mut [Drive]) -> CalcStats<'a> {
@@ -19,13 +20,14 @@ fn calc<'a>(profile: &'a BtrfsProfile, drives: &mut [Drive]) -> CalcStats<'a> {
         profile,
         raw_capacity: 0,
         usable_capacity: 0,
+        unusable_space: 0,
     };
     // Ensure the selected profile can be computed for `drives.len()` number of devices.
     // TODO: Use a less naïve check to handle other cases with parity, etc
     if drives.len() < profile.configuration().number_of_copies {
         panic!("Not enough drives...")
     }
-    stats.raw_capacity = drives.iter().map(|d| d.capacity).sum();
+    stats.raw_capacity = drives.iter().map(|d| d.get_capacity()).sum();
     drive::sort_drives_by_free_space_decreasing(drives);
     match profile {
         BtrfsProfile::Single => {
@@ -48,29 +50,32 @@ fn calc<'a>(profile: &'a BtrfsProfile, drives: &mut [Drive]) -> CalcStats<'a> {
             while drives
                 .get(profile.configuration().number_of_copies - 1)
                 .unwrap()
-                .free
-                > 0
+                .has_free_space()
             {
                 for i in 0..profile.configuration().number_of_copies {
-                    drives.get_mut(i).unwrap().free -= 1;
+                    drives.get_mut(i).unwrap().dec_free();
                 }
                 stats.usable_capacity += 1;
-                drive::sort_drives_by_free_space_decreasing(drives);            }
+                drive::sort_drives_by_free_space_decreasing(drives);
+            }
         }
         // TODO: Handle non-standard profile configurations
         _ => {
             unimplemented!()
         }
     }
+    for drive in drives {
+        stats.unusable_space += drive.get_free();
+    }
     stats
 }
 
 fn main() {
     let mut drives: Vec<Drive> = vec![
-        Drive::new(0,1000),
-        Drive::new(1,1000),
-        Drive::new(2,500),
-        Drive::new(3,250),
+        Drive::new(1000),
+        Drive::new(1000),
+        Drive::new(500),
+        Drive::new(250),
     ];
     let stats = calc(&BtrfsProfile::Raid1c3, &mut drives);
     let drive_t = Table::new(drives).to_string();
