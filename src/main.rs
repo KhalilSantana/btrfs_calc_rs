@@ -59,28 +59,36 @@ fn calc<'a>(profile: &'a BtrfsProfile, drives: &mut [Drive]) -> CalcStats<'a> {
                 drive::sort_drives_by_free_space_decreasing(drives);
             }
         }
-        BtrfsProfile::Raid10 => {
-            while drives
-                .get(
-                    profile.configuration().number_of_copies - 1
-                        + profile.configuration().stripe_min,
-                )
-                .unwrap()
-                .has_free_space()
-            {
-                for i in 0..profile.configuration().number_of_copies {
-                    drives.get_mut(i).unwrap().dec_free()
-                }
-
-                let stripe_drive_start = profile.configuration().number_of_copies;
-                let stripe_drive_end = stripe_drive_start + profile.configuration().stripe_min;
-                for s in stripe_drive_start..stripe_drive_end {
-                    drives.get_mut(s).unwrap().dec_free()
-                }
-                stats.usable_capacity += stripe_drive_end - stripe_drive_start;
-                drive::sort_drives_by_free_space_decreasing(drives);
+        BtrfsProfile::Raid10 => loop {
+            let drives_free = drives.iter().filter(|d| d.has_free_space()).count();
+            //            println!("Drives with free space: {drives_free}");
+            let n = if drives_free % 2 == 0 {
+                drives_free
+            } else {
+                drives_free - 1
+            };
+            let stripes = n - profile.configuration().number_of_copies;
+            //            println!("Working on {n} drives this round");
+            //            println!("Stripe count: {stripes}");
+            //            let drive_t = Table::new(&*drives).to_string();
+            //            println!("{}", drive_t);
+            if n < 2 || stripes < 2 {
+                break;
             }
-        }
+            for d in 0..profile.configuration().number_of_copies {
+                drives.get_mut(d).unwrap().dec_free()
+            }
+            stats.usable_capacity += 1;
+            let start = profile.configuration().number_of_copies;
+            let end = start + stripes;
+            for s in start..end {
+                drives.get_mut(s).unwrap().dec_free()
+            }
+            //            println!("B: Usable capacity: {}", stats.usable_capacity);
+            stats.usable_capacity += stripes / 2;
+            //            println!("A: Usable capacity: {}", stats.usable_capacity);
+            drive::sort_drives_by_free_space_decreasing(drives)
+        },
 
         // TODO: Handle non-standard profile configurations
         _ => {
@@ -95,14 +103,16 @@ fn calc<'a>(profile: &'a BtrfsProfile, drives: &mut [Drive]) -> CalcStats<'a> {
 
 fn main() {
     let mut drives: Vec<Drive> = vec![
-        Drive::new(200),
         Drive::new(300),
+        Drive::new(200),
         Drive::new(50),
-        Drive::new(25),
-        Drive::new(25),
+        Drive::new(1),
+        Drive::new(1),
+        Drive::new(1),
+        Drive::new(1),
     ];
     let stats = calc(&BtrfsProfile::Raid10, &mut drives);
-    let drive_t = Table::new(drives).to_string();
+    let drive_t = Table::new(&drives).to_string();
     println!("{:?}", stats);
     println!("{}", drive_t);
 }
