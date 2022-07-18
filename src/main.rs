@@ -59,6 +59,17 @@ fn calc<'a>(profile: &'a BtrfsProfile, drives: &mut [Drive]) -> CalcStats<'a> {
                 drive::sort_drives_by_free_space_decreasing(drives);
             }
         }
+        BtrfsProfile::Raid0 => loop {
+            let drives_free = drives.iter().filter(|d| d.has_free_space()).count();
+            if drives_free < 1 {
+                break;
+            }
+            for i in 0..drives_free {
+                drives.get_mut(i).unwrap().dec_free();
+                stats.usable_capacity += 1;
+            }
+            drive::sort_drives_by_free_space_decreasing(drives);
+        },
         BtrfsProfile::Raid10 => loop {
             let drives_free = drives.iter().filter(|d| d.has_free_space()).count();
             //            println!("Drives with free space: {drives_free}");
@@ -111,7 +122,7 @@ fn main() {
         Drive::new(1),
         Drive::new(1),
     ];
-    let stats = calc(&BtrfsProfile::Raid10, &mut drives);
+    let stats = calc(&BtrfsProfile::Raid0, &mut drives);
     let drive_t = Table::new(&drives).to_string();
     println!("{:?}", stats);
     println!("{}", drive_t);
