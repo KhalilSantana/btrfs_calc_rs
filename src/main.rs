@@ -51,9 +51,21 @@ fn calc<'a>(profile: &'a BtrfsProfile, drives: &mut [Drive]) -> CalcStats<'a> {
             stats.usable_capacity += acc - 1;
             drive::sort_drives_by_free_space_decreasing(drives)
         },
-        BtrfsProfile::Raid6 => {
-            todo!("Implement raid6 && Handle degenerate cases like 3xdrive RAID6")
-        }
+        BtrfsProfile::Raid6 => loop {
+            let drives_free = drives.iter().filter(|d| d.has_free_space()).count();
+            if drives_free
+                < (profile.configuration().parity + profile.configuration().number_of_copies)
+            {
+                break;
+            }
+            let mut acc = 0;
+            for i in 0..drives_free {
+                drives.get_mut(i).unwrap().dec_free();
+                acc += 1;
+            }
+            stats.usable_capacity += acc - 2;
+            drive::sort_drives_by_free_space_decreasing(drives)
+        },
         BtrfsProfile::Raid1 | BtrfsProfile::Raid1c3 | BtrfsProfile::Raid1c4 => {
             // Unwrap usage: We already check if the `drives` array has enough elements at the start of this fn
             // and this fn doesn't add or remove items to the `drives` array, as such, there's no need to check here again
@@ -134,7 +146,7 @@ fn main() {
         Drive::new(1),
         Drive::new(1),
     ];
-    let stats = calc(&BtrfsProfile::Raid5, &mut drives);
+    let stats = calc(&BtrfsProfile::Raid6, &mut drives);
     let drive_t = Table::new(&drives).to_string();
     println!("{:?}", stats);
     println!("{}", drive_t);
